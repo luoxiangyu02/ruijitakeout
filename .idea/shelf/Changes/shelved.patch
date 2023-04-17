@@ -1,0 +1,1853 @@
+Index: ../test1/test1.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../test1/test1.iml b/../test1/test1.iml
+new file mode 100644
+--- /dev/null	(date 1681088265519)
++++ b/../test1/test1.iml	(date 1681088265519)
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="JAVA_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <output url="file://$MODULE_DIR$/bin" />
++    <exclude-output />
++    <content url="file://$MODULE_DIR$" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+Index: ../newBean2/.idea/libraries/javax_ejb_api.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/libraries/javax_ejb_api.xml b/../newBean2/.idea/libraries/javax_ejb_api.xml
+new file mode 100644
+--- /dev/null	(date 1681100790026)
++++ b/../newBean2/.idea/libraries/javax_ejb_api.xml	(date 1681100790026)
+@@ -0,0 +1,11 @@
++<component name="libraryTable">
++  <library name="javax.ejb.api" type="repository">
++    <properties maven-id="javax.ejb:javax.ejb-api:3.2" />
++    <CLASSES>
++      <root url="jar://$MAVEN_REPOSITORY$/javax/ejb/javax.ejb-api/3.2/javax.ejb-api-3.2.jar!/" />
++      <root url="jar://$MAVEN_REPOSITORY$/javax/transaction/javax.transaction-api/1.2/javax.transaction-api-1.2.jar!/" />
++    </CLASSES>
++    <JAVADOC />
++    <SOURCES />
++  </library>
++</component>
+\ No newline at end of file
+Index: ../newBean2/src/main/java/jee/ejb/mdb/PTPMessageBean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/mdb/PTPMessageBean.java b/../newBean2/src/main/java/jee/ejb/mdb/PTPMessageBean.java
+new file mode 100644
+--- /dev/null	(date 1681041039207)
++++ b/../newBean2/src/main/java/jee/ejb/mdb/PTPMessageBean.java	(date 1681041039207)
+@@ -0,0 +1,76 @@
++package jee.ejb.mdb;
++
++import java.sql.*;
++import java.sql.Connection;
++import java.text.SimpleDateFormat;
++import java.util.Date;
++
++import javax.annotation.Resource;
++import javax.jms.Message;
++import javax.jms.MessageListener;
++import javax.ejb.*;
++import javax.annotation.*;
++import javax.jms.*;
++/**
++ * Message-Driven Bean implementation class for: PTPMessageBean
++ */
++@MessageDriven(activationConfig =  {
++        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
++        @ActivationConfigProperty(propertyName = "destination", propertyValue = "queue/test")
++    })
++
++public class PTPMessageBean implements MessageListener {
++    @Resource
++    private MessageDrivenContext mdc;
++
++    public PTPMessageBean() {
++    }
++
++    public void onMessage(Message inMessage) {
++        TextMessage msg = null;
++        Connection conn = null;
++        PreparedStatement stmt = null;
++        try {
++            if (inMessage instanceof TextMessage) {
++                msg = (TextMessage) inMessage;
++                String messageText =msg.getText();
++                String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
++                int count = 1; // 消息计数器
++                try {
++                    // 解析消息内容中的计数器
++                    count = Integer.parseInt(messageText.substring(messageText.lastIndexOf("|") + 1));
++                } catch (NumberFormatException e) {
++                    // 忽略异常
++                }
++                // 获取数据库连接
++                conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/testdb?useUnicode=true&characterEncoding=utf-8&useSSL=false", "user1", "123456");
++                // 插入消息数据到数据库
++                stmt = conn.prepareStatement("INSERT INTO messages (message, send_time, count) VALUES (?, ?, ?)");
++                stmt.setString(1, messageText);
++                stmt.setString(2, currentTime);
++                stmt.setInt(3, count);
++                stmt.executeUpdate();
++                System.out.println("消息驱动Bean:接收到的消息 " + msg.getText());
++            } else {
++            	System.out.println("消息的类型不正确： " + inMessage.getClass().getName());
++            }
++        } catch (JMSException e) {
++            e.printStackTrace();
++            mdc.setRollbackOnly();
++        } catch (SQLException e) {
++            e.printStackTrace();
++            mdc.setRollbackOnly();
++        } finally {
++            try {
++                if (stmt != null) {
++                    stmt.close();
++                }
++                if (conn != null) {
++                    conn.close();
++                }
++            } catch (SQLException e) {
++                e.printStackTrace();
++            }
++        }
++    }
++}
+Index: ../newBean2/src/main/webapp/Select.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/Select.jsp b/../newBean2/src/main/webapp/Select.jsp
+new file mode 100644
+--- /dev/null	(date 1681053980842)
++++ b/../newBean2/src/main/webapp/Select.jsp	(date 1681053980842)
+@@ -0,0 +1,58 @@
++<%@ page import="java.sql.*" %>
++<html>
++  <head>
++    <title>Message Query Page</title>
++  </head>
++  <body>
++    <h1>Message Query Page</h1>
++    <form method="get" action="<%=request.getContextPath()%>/query.jsp">
++      Start Time: <input type="text" name="start_time" value="<%=request.getParameter("start_time")%>"><br>
++      End Time: <input type="text" name="end_time" value="<%=request.getParameter("end_time")%>"><br>
++      <input type="submit" value="Query">
++    </form>
++    <hr>
++    <h2>Messages</h2>
++    <%!
++      private String formatTimestamp(Timestamp ts) {
++        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(ts);
++      }
++    %>
++    <%
++      String startTimeStr = request.getParameter("start_time");
++      String endTimeStr = request.getParameter("end_time");
++      Timestamp startTime = null;
++      Timestamp endTime = null;
++      if (startTimeStr != null && endTimeStr != null) {
++        try {
++          startTime = Timestamp.valueOf(startTimeStr);
++          endTime = Timestamp.valueOf(endTimeStr);
++        } catch (IllegalArgumentException e) {
++          out.println("<p style=\"color: red;\">Invalid timestamp format</p>");
++        }
++      }
++      if (startTime != null && endTime != null) {
++        try {
++          Class.forName("com.mysql.jdbc.Driver");
++          Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydatabase", "myuser", "mypassword");
++          PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM messages WHERE sent_time >= ? AND sent_time <= ?");
++          pstmt.setTimestamp(1, startTime);
++          pstmt.setTimestamp(2, endTime);
++          ResultSet rs = pstmt.executeQuery();
++          while (rs.next()) {
++            out.println("<p>");
++            out.println("From: " + rs.getString("sender") + "<br>");
++            out.println("To: " + rs.getString("recipient") + "<br>");
++            out.println("Message: " + rs.getString("content") + "<br>");
++            out.println("Sent Time: " + formatTimestamp(rs.getTimestamp("sent_time")) + "<br>");
++            out.println("</p>");
++          }
++          rs.close();
++          pstmt.close();
++          conn.close();
++        } catch (ClassNotFoundException | SQLException e) {
++          e.printStackTrace();
++        }
++      }
++    %>
++  </body>
++</html>
+Index: ../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Bean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Bean.java b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Bean.java
+new file mode 100644
+--- /dev/null	(date 1681091642561)
++++ b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Bean.java	(date 1681091642561)
+@@ -0,0 +1,18 @@
++package jee.ejb.stateful.remote;
++
++//import javax.ejb.LocalBean;
++import javax.ejb.Stateful;
++@Stateful
++public class MulBy2Bean implements MulBy2Remote {
++  	int i=1;
++    public MulBy2Bean() {
++        // TODO Auto-generated constructor stub
++    }
++    public int mul(){
++    	i=i*2;
++    	return i;
++    	
++    }
++
++}
++
+Index: ../newBean2/src/main/java/jee/jms/queue/JMSProducer.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/jms/queue/JMSProducer.java b/../newBean2/src/main/java/jee/jms/queue/JMSProducer.java
+new file mode 100644
+--- /dev/null	(date 1681111115955)
++++ b/../newBean2/src/main/java/jee/jms/queue/JMSProducer.java	(date 1681111115955)
+@@ -0,0 +1,136 @@
++package jee.jms.queue;
++
++import javax.jms.*;
++import javax.naming.Context;
++import javax.naming.InitialContext;
++import java.text.SimpleDateFormat;
++import java.util.Date;
++import java.util.Properties;
++import java.util.Scanner;
++import java.util.logging.Logger;
++
++public class JMSProducer {
++	private static final Logger log = Logger.getLogger(JMSProducer.class.getName());
++	private static final String DEFAULT_MESSAGE = "Welcome to JMS!";
++	private static final String DEFAULT_CONNECTION_FACTORY = "jms/RemoteConnectionFactory";
++    private static final String DEFAULT_DESTINATION = "jms/queue/test";
++	private static final String DEFAULT_MESSAGE_COUNT = "1";
++	private static final String DEFAULT_USERNAME = "test";
++	private static final String DEFAULT_PASSWORD = "123456";
++	private static final String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
++	private static final String PROVIDER_URL = "remote://localhost:4447";
++    private static final int MESSAGE_COUNT = 10;
++    private static final int DELAY_MILLISECONDS = 100;
++    private static final long MESSAGE_DELAY_MS = 100;
++    private static final long SEND_DURATION_MS = 60000;
++    
++	public static void main(String[] args) throws Exception {
++		Context context=null;
++		Connection connection=null;
++		try {
++		// 设置上下文
++		System.out.println("设置JNDI访问环境信息也就是设置应用服务器的上下文信息!");
++		final Properties env = new Properties();
++	              //初始化Context的工厂类
++		env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY);
++	             //Context服务提供者的URL
++		env.put(Context.PROVIDER_URL,  PROVIDER_URL);
++	            //应用用户的登录名,密码.
++		env.put(Context.SECURITY_PRINCIPAL, DEFAULT_USERNAME);			
++		env.put(Context.SECURITY_CREDENTIALS, DEFAULT_PASSWORD);
++		// 获取到InitialContext对象.
++		context = new InitialContext(env);
++		System.out.println ("获取连接工厂!");
++		ConnectionFactory connectionFactory =(ConnectionFactory)context.lookup(DEFAULT_CONNECTION_FACTORY);
++        System.out.println ("获取目的地!");
++        Destination destination = (Destination)context.lookup(DEFAULT_DESTINATION);
++//创建JMS连接、会话、生产者和消费者
++        connection = connectionFactory.createConnection(DEFAULT_USERNAME, DEFAULT_PASSWORD);
++        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
++        MessageProducer producer = session.createProducer(destination);
++        connection.start();
++//        int count = Integer.parseInt(DEFAULT_MESSAGE_COUNT);
++////发送特定数目的消息
++//        TextMessage message = null;
++//        for (int i = 0; i < count; i++) {
++//        	message = session.createTextMessage(DEFAULT_MESSAGE);
++//        	producer.send(message);
++//        	System.out.println ("message:"+message);
++//        	System.out.println ("message:"+DEFAULT_MESSAGE);
++//}
++//// 等待30秒退出
++//        CountDownLatch latch = new CountDownLatch(1);
++//        latch.await(30, TimeUnit.SECONDS);
++//}
++//		catch (Exception e) {
++//			log.severe(e.getMessage());
++//			throw e;
++//} finally {
++//	if (context != null) {
++//		context.close();
++//}
++//// 关闭连接负责会话,生产商和消费者
++//	if (connection != null) {
++//		connection.close();
++//}
++//}
++        int messageCount = 0;
++        while (true) {
++            Date startTime = new Date();
++            long messageCount1 = 0;
++            long sendDuration = 0;
++
++            // Send messages for SEND_DURATION_MS
++            while (sendDuration < SEND_DURATION_MS) {
++                Date sendTime = new Date();
++                for (int i = 0; i < MESSAGE_COUNT; i++) {
++                    TextMessage message = session.createTextMessage(createMessage(sendTime, messageCount1));
++                    producer.send(message);
++                    String str=createMessage(sendTime, messageCount1);
++                    System.out.println ("message:"+str);
++
++                    messageCount1++;
++                    Thread.sleep(MESSAGE_DELAY_MS);
++                }
++                sendDuration = new Date().getTime() - startTime.getTime();
++            }
++
++            // Ask user whether to send messages again
++            System.out.print("Send messages for another minute? (y/n): ");
++            Scanner scanner = new Scanner(System.in);
++            String input = scanner.nextLine();
++
++            // If user chooses not to send messages again, break out of loop
++            if (!input.equalsIgnoreCase("y")) {
++                break;
++            }
++        }
++    } catch (Exception e) {
++        e.printStackTrace();
++    } finally {
++        // 关闭连接、会话和生产者
++    	if (context != null) {
++    		context.close();
++    }
++    // 关闭连接负责会话,生产商和消费者
++    	if (connection != null) {
++    		connection.close();
++    }
++}
++}
++	private static boolean shouldSendAgain() {
++        // 实现用户选择是否再次发送的逻辑
++        return true; // 这里默认为再次发送
++    }
++	 private static String createMessage(Date sendTime, long messageCount) {
++	        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
++	        String timestamp = format.format(sendTime);
++	        return "Message #" + messageCount + " sent at " + timestamp;
++	    }
++}
++
++
++
++
++		
++
+Index: ../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Client.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Client.java b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Client.java
+new file mode 100644
+--- /dev/null	(date 1680976770835)
++++ b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Client.java	(date 1680976770835)
+@@ -0,0 +1,38 @@
++package jee.ejb.stateful.remote;
++
++import java.util.Hashtable;
++
++import javax.naming.*;
++
++public class MulBy2Client {
++ 	 public static void main(String[] args) {
++	        // TODO Auto-generated method stub
++ 		 Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
++        jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
++        try {
++            Context context = new InitialContext(jndiProperties);
++            final String appName = "";
++            final String moduleName = "SessionEJB";
++            final String distinctName = "";
++       //   生成第一个实例                
++            Object obj = context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/MulBy2Bean!jee.ejb.stateful.remote.MulBy2Remote?stateful");
++           
++            MulBy2Remote mulBy2R1 =(MulBy2Remote)obj;
++//生成第二个实例      
++            obj = context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/MulBy2Bean!jee.ejb.stateful.remote.MulBy2Remote?stateful");
++          //第一个实例调用2次乘法操作
++            MulBy2Remote mulBy2R2 =(MulBy2Remote)obj;
++            int j1=mulBy2R1.mul();
++            j1=mulBy2R1.mul();
++            System.out.println("the  value in Clinet 1:  "+j1);
++//第二个实例调用1次乘法操作
++            int j2=mulBy2R2.mul();
++            System.out.println("the  value in Clinet 2:  "+j2);
++                      
++        } catch (NamingException e) {
++            e.printStackTrace();
++        }
++	}
++}
++
++
+Index: ../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Remote.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Remote.java b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Remote.java
+new file mode 100644
+--- /dev/null	(date 1388481198000)
++++ b/../newBean2/src/main/java/jee/ejb/stateful/remote/MulBy2Remote.java	(date 1388481198000)
+@@ -0,0 +1,10 @@
++package jee.ejb.stateful.remote;
++
++import javax.ejb.Remote;
++
++@Remote
++public interface MulBy2Remote {
++	public int mul();
++
++}
++
+Index: ../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBean.java b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBean.java
+new file mode 100644
+--- /dev/null	(date 1681091642547)
++++ b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBean.java	(date 1681091642547)
+@@ -0,0 +1,27 @@
++package jee.ejb.singleton.remote;
++
++//import javax.ejb.Singleton;
++
++/**
++ * Session Bean implementation class SimpleSingletonBean
++ */
++//@Singleton
++public class SimpleSingletonBean implements SimpleSingletonBeanRemote {
++	 int i=0;
++		public SimpleSingletonBean () {
++	        // TODO Auto-generated constructor stub
++	    }
++	    public void change01(){
++	    	if (i==0) 
++	    		i=1;
++	    	else 
++	    		i=0;
++	    	
++	        	
++	}
++	public int getValue(){
++	    return i;
++	}
++
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonClient.java b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonClient.java
+new file mode 100644
+--- /dev/null	(date 1680978206803)
++++ b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonClient.java	(date 1680978206803)
+@@ -0,0 +1,42 @@
++package jee.ejb.singleton.remote;
++
++import java.util.Hashtable;
++
++import javax.naming.*;
++public class SimpleSingletonClient {
++
++ 	 public static void main(String[] args) {
++	 Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
++     jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
++     try {
++         Context context = new InitialContext(jndiProperties);
++        
++         final String appName = "";
++         final String moduleName = "SessionEJB";
++         final String distinctName = "";
++       //生成2个客户端
++         SimpleSingletonBeanRemote single01 =(SimpleSingletonBeanRemote) context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/SimpleSingletonBean!jee.ejb.singleton.remote.SimpleSingletonBeanRemote");
++         SimpleSingletonBeanRemote single02=(SimpleSingletonBeanRemote)context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/SimpleSingletonBean!jee.ejb.singleton.remote.SimpleSingletonBeanRemote");
++       
++         int value1=single01.getValue();
++         int value2=single02.getValue();
++         System.out.println("Singleton01 初始值：   "+ String.valueOf(value1));       
++         System.out.println("Singleton02初始值：   "+ String.valueOf(value2));
++         single01.change01();
++         value1=single01.getValue();
++         value2=single02.getValue();
++         System.out.println("Singleton01值：   "+ String.valueOf(value1));
++         System.out.println("Singleton02值：   "+ String.valueOf(value2));
++         single02.change01();
++         value1=single01.getValue();
++         value2=single02.getValue();
++         System.out.println("Singleton01值：   "+ String.valueOf(value1));
++         System.out.println("Singleton02值：   "+ String.valueOf(value2));
++
++     } catch (NamingException e) {
++         e.printStackTrace();}
++     }
++}
++
++
++
+Index: ../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonRemote.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonRemote.java b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonRemote.java
+new file mode 100644
+--- /dev/null	(date 1680978023146)
++++ b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonRemote.java	(date 1680978023146)
+@@ -0,0 +1,7 @@
++package jee.ejb.singleton.remote;
++import javax.ejb.Remote;
++@Remote
++public interface SimpleSingletonRemote {
++   public void change01();
++   public int getValue();
++}
+Index: ../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBeanRemote.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBeanRemote.java b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBeanRemote.java
+new file mode 100644
+--- /dev/null	(date 1385301556000)
++++ b/../newBean2/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBeanRemote.java	(date 1385301556000)
+@@ -0,0 +1,11 @@
++package jee.ejb.singleton.remote;
++
++import javax.ejb.Remote;
++
++@Remote
++public interface SimpleSingletonBeanRemote {
++	public void change01();
++    public int getValue();
++
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/local/CallerBean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBean.java b/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBean.java
+new file mode 100644
+--- /dev/null	(date 1681111064020)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBean.java	(date 1681111064020)
+@@ -0,0 +1,35 @@
++package jee.ejb.stateless.local;
++
++
++import javax.ejb.Stateless;
++import javax.ejb.*;
++
++/**
++ * Session Bean implementation class CallerBean
++ */
++@Stateless
++public class CallerBean implements CallerBeanRemote {
++	@EJB CalculatorBeanLocal localbean;
++    /**
++     * Default constructor. 
++     */
++    public CallerBean() {
++        // TODO Auto-generated constructor stub
++    }
++    public String testMethod()
++    {
++	   System.out.println("\n\n\t Bean testMethod() called....");
++	   return "DONE----returned";
++    }
++
++public String callEJBOne(int a, int b)
++    {
++     int result=0;
++	   try{
++	   System.out.println("\n\n\t Bean callEJBOne(a,b) called....");
++       result=localbean.add(a,b);
++	   }
++	   catch(Exception e){ e.printStackTrace(); }
++	   return "DONE----result = "+result;
++    }
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBean.java b/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBean.java
+new file mode 100644
+--- /dev/null	(date 1681091650974)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBean.java	(date 1681091650974)
+@@ -0,0 +1,26 @@
++package jee.ejb.stateless.local;
++
++//import javax.ejb.LocalBean;
++import javax.ejb.Stateless;
++
++/**
++ * Session Bean implementation class CalculatorBean
++ */
++@Stateless
++//@LocalBean
++public class CalculatorBean implements CalculatorBeanLocal {
++
++    /**
++     * Default constructor. 
++     */
++    public CalculatorBean() {
++        // TODO Auto-generated constructor stub
++    }
++    public int add(int x,int y)
++    {
++	  System.out.println("\n\t[CalculatorBean]  add() invoked.");
++      return (x+y);
++    }
++
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/local/TestLocalClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/local/TestLocalClient.java b/../newBean2/src/main/java/jee/ejb/stateless/local/TestLocalClient.java
+new file mode 100644
+--- /dev/null	(date 1680973323113)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/local/TestLocalClient.java	(date 1680973323113)
+@@ -0,0 +1,26 @@
++package jee.ejb.stateless.local;
++import javax.naming.*;
++import java.util.*;
++public class TestLocalClient {
++      public static void main(String[] args)  throws Exception
++     {
++             String  result="";
++	System.out.println("\n\n\t begin ...");
++	try{
++	     Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
++	      jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
++	       Context context = new InitialContext(jndiProperties);
++                    final String appName = "";
++	       final String moduleName = "SessionEJB";
++           final String distinctName = "";         
++   System.out.println("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/CallerBean!jee.ejb.stateless.local.CallerBeanRemote");
++       
++            CallerBeanRemote remote=(CallerBeanRemote)context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName +  "/CallerBean!jee.ejb.stateless.local.CallerBeanRemote");
++   result=remote.callEJBOne(1000,2000);
++//   remote.testMethod();
++   }
++   catch(Exception e){ e.printStackTrace(); }
++  System.out.println("ONE----result = "+result);	    
++}
++}
++
+Index: ../newBean2/src/main/java/jee/ejb/stateless/local/CallerBeanRemote.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBeanRemote.java b/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBeanRemote.java
+new file mode 100644
+--- /dev/null	(date 1384872160000)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/local/CallerBeanRemote.java	(date 1384872160000)
+@@ -0,0 +1,11 @@
++package jee.ejb.stateless.local;
++
++import javax.ejb.Remote;
++
++@Remote
++public interface CallerBeanRemote {
++	public String testMethod();
++    public String callEJBOne(int a, int b);
++
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBeanLocal.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBeanLocal.java b/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBeanLocal.java
+new file mode 100644
+--- /dev/null	(date 1681088635216)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/local/CalculatorBeanLocal.java	(date 1681088635216)
+@@ -0,0 +1,9 @@
++package jee.ejb.stateless.local;
++
++import javax.ejb.Local;
++
++@Local
++public interface CalculatorBeanLocal {
++	 public int add(int x, int y);
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBean.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBean.java b/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBean.java
+new file mode 100644
+--- /dev/null	(date 1681091668270)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBean.java	(date 1681091668270)
+@@ -0,0 +1,26 @@
++package jee.ejb.stateless.remote;
++
++//import javax.ejb.LocalBean;
++import javax.ejb.Stateless;
++
++/**
++ * Session Bean implementation class HelloBean
++ */
++@Stateless
++//@LocalBean
++public class HelloBean implements HelloBeanRemote {
++
++    /**
++     * Default constructor. 
++     */
++    public HelloBean() {
++        // TODO Auto-generated constructor stub
++    }
++    public String sayHello(String name){
++
++        return "Hello " + name + "!";
++
++    }
++
++
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBeanRemote.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBeanRemote.java b/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBeanRemote.java
+new file mode 100644
+--- /dev/null	(date 1384870294000)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/remote/HelloBeanRemote.java	(date 1384870294000)
+@@ -0,0 +1,8 @@
++package jee.ejb.stateless.remote;
++
++import javax.ejb.Remote;
++
++@Remote
++public interface HelloBeanRemote {
++	public String sayHello(String name);
++}
+Index: ../newBean2/src/main/java/jee/ejb/stateless/remote/StatelessRemoteClient.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/ejb/stateless/remote/StatelessRemoteClient.java b/../newBean2/src/main/java/jee/ejb/stateless/remote/StatelessRemoteClient.java
+new file mode 100644
+--- /dev/null	(date 1681091668275)
++++ b/../newBean2/src/main/java/jee/ejb/stateless/remote/StatelessRemoteClient.java	(date 1681091668275)
+@@ -0,0 +1,35 @@
++package jee.ejb.stateless.remote;
++
++import java.util.Hashtable;
++
++//import javax.ejb.LocalBean;
++import javax.ejb.Stateless;
++import javax.naming.Context;
++import javax.naming.InitialContext;
++import javax.naming.NamingException;
++
++/**
++ * Session Bean implementation class HelloBean
++ */
++@Stateless
++//@LocalBean
++public class StatelessRemoteClient {
++    public static void main(String[] args) {
++ //在JBoss中使用如下方式访问EJB
++    Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
++     jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
++             try {
++                 Context context = new InitialContext(jndiProperties);
++                         final String appName = "";
++                 final String moduleName = "SessionEJB";
++                 final String distinctName = "";
++          	   Object obj = context.lookup("ejb:" + appName + "/" + moduleName + "/" + distinctName + "/HelloBean!jee.ejb.stateless.remote.HelloBeanRemote");
++               
++               HelloBeanRemote hwr = (HelloBeanRemote)obj;
++               String say = hwr.sayHello("Jilin University");
++               System.out.println(say);
++           } catch (NamingException e) {
++               e.printStackTrace();
++           }
++      }
++}
+Index: ../newBean2/src/main/java/jee/jms/queue/SyncMesConsumer.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/jms/queue/SyncMesConsumer.java b/../newBean2/src/main/java/jee/jms/queue/SyncMesConsumer.java
+new file mode 100644
+--- /dev/null	(date 1681038922561)
++++ b/../newBean2/src/main/java/jee/jms/queue/SyncMesConsumer.java	(date 1681038922561)
+@@ -0,0 +1,92 @@
++package jee.jms.queue;
++
++/**
++ * <p>Title: </p>
++ * <p>Description: </p>
++ * <p>Copyright: Copyright (c) 2004</p>
++ * <p>Company: </p>
++ * @author not attributable
++ * @version 1.0
++ */
++
++
++import java.util.logging.Logger;
++import java.util.Properties;
++
++import javax.jms.Connection;
++import javax.jms.ConnectionFactory;
++import javax.jms.Destination;
++import javax.jms.MessageConsumer;
++import javax.jms.Session;
++import javax.jms.TextMessage;
++import javax.naming.Context;
++import javax.naming.InitialContext;
++
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++
++
++public final class SyncMesConsumer{
++	private static final Logger log = Logger.getLogger(JMSProducer.class.getName());
++
++	
++	private static final String DEFAULT_CONNECTION_FACTORY = "jms/RemoteConnectionFactory";
++	private static final String DEFAULT_DESTINATION = "jms/queue/test";
++	
++	private static final String DEFAULT_USERNAME = "testJNDI";
++	private static final String DEFAULT_PASSWORD = "123456";
++	private static final String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
++	private static final String PROVIDER_URL = "remote://localhost:4447";
++  
++  
++
++  public static void main(String[] args) throws Exception 
++  {
++	  Context context=null;
++	  Connection connection=null;
++	  TextMessage msg=null;
++	  try {
++			// ���������ĵ�JNDI����
++			System.out.println("设置JNDI访问环境信息也就是设置应用服务器的上下文信息!");
++			final Properties env = new Properties();
++			env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY);// ��KEY��ֵΪ��ʼ��Context�Ĺ�����,JNDI�������
++			env.put(Context.PROVIDER_URL,  PROVIDER_URL);// ��KEY��ֵΪContext�����ṩ�ߵ�URL.��������ṩ�ߵ�URL
++			env.put(Context.SECURITY_PRINCIPAL, DEFAULT_USERNAME);
++			env.put(Context.SECURITY_CREDENTIALS, DEFAULT_PASSWORD);//Ӧ���û��ĵ�¼��,����.
++			// ��ȡ��InitialContext����.
++			context = new InitialContext(env);
++			System.out.println ("获取连接工厂!");
++			ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(DEFAULT_CONNECTION_FACTORY);
++			System.out.println ("获取目的地!");
++			Destination destination = (Destination) context.lookup(DEFAULT_DESTINATION);
++
++			// ����JMS���ӡ��Ự������ߺ������
++			connection = connectionFactory.createConnection(DEFAULT_USERNAME, DEFAULT_PASSWORD);
++			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);		
++			MessageConsumer consumer = session.createConsumer(destination);
++			connection.start();
++			// �ȴ�30���˳�
++			CountDownLatch latch = new CountDownLatch(1);	
++			while (msg == null) {		
++				System.out.println ("开始从JBOSS端接收信息-----");
++		    	msg = (TextMessage) consumer.receive(5000);
++		        latch.await(1, TimeUnit.SECONDS);
++			 }
++			System.out.println("接收到消息的内容:" + msg.getText());	
++		} catch (Exception e) {
++			log.severe(e.getMessage());
++		} finally {
++			if (context != null) {
++				context.close();
++			}
++			// �ر����Ӹ���Ự,����̺������
++			if (connection != null) {
++				connection.close();
++			}
++		}
++	}
++}
++
++
++ 
++
+Index: ../newBean2/src/main/java/jee/jms/queue/AsyncMesConsumer.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/jms/queue/AsyncMesConsumer.java b/../newBean2/src/main/java/jee/jms/queue/AsyncMesConsumer.java
+new file mode 100644
+--- /dev/null	(date 1681105780398)
++++ b/../newBean2/src/main/java/jee/jms/queue/AsyncMesConsumer.java	(date 1681105780398)
+@@ -0,0 +1,90 @@
++package jee.jms.queue;
++
++import javax.jms.Message;
++import javax.jms.MessageListener;
++
++import java.util.logging.Logger;
++import java.util.Properties;
++
++import javax.jms.Connection;
++import javax.jms.ConnectionFactory;
++import javax.jms.Destination;
++import javax.jms.MessageConsumer;
++import javax.jms.Session;
++import javax.jms.TextMessage;
++import javax.naming.Context;
++import javax.naming.InitialContext;
++
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++public class AsyncMesConsumer{
++
++
++
++		
++	private static final String DEFAULT_CONNECTION_FACTORY = "jms/RemoteConnectionFactory";
++	private static final String DEFAULT_DESTINATION = "jms/queue/test";
++	
++	private static final String DEFAULT_USERNAME = "test";
++	private static final String DEFAULT_PASSWORD = "123456";
++	private static final String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
++	private static final String PROVIDER_URL = "remote://localhost:4447";
++      
++    public static class AsynMesListener implements MessageListener
++{
++    public void onMessage(Message msg)
++    {
++        TextMessage tm = (TextMessage) msg;
++        try {
++            System.out.println("onMessage, recv text=" + tm.getText());
++        } catch(Throwable t) {
++            t.printStackTrace();
++        }
++    }
++}
++
++        
++  public static void main(String[] args) throws Exception 
++  {
++	  Context context=null;
++	  Connection connection=null;
++	  TextMessage msg=null;
++	  AsynMesListener l=null;
++	  try {
++			// ���������ĵ�JNDI����
++			System.out.println("����JNDI���ʻ�����ϢҲ��������Ӧ�÷���������������Ϣ!");
++			final Properties env = new Properties();
++			env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY);// ��KEY��ֵΪ��ʼ��Context�Ĺ�����,JNDI�������
++			env.put(Context.PROVIDER_URL,  PROVIDER_URL);// ��KEY��ֵΪContext�����ṩ�ߵ�URL.��������ṩ�ߵ�URL
++			env.put(Context.SECURITY_PRINCIPAL, DEFAULT_USERNAME);
++			env.put(Context.SECURITY_CREDENTIALS, DEFAULT_PASSWORD);//Ӧ���û��ĵ�¼��,����.
++			// ��ȡ��InitialContext����.
++			context = new InitialContext(env);
++			System.out.println ("��ȡ���ӹ���!");
++			ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(DEFAULT_CONNECTION_FACTORY);
++			System.out.println ("��ȡĿ�ĵ�!");
++			Destination destination = (Destination) context.lookup(DEFAULT_DESTINATION);
++
++			// ����JMS���ӡ��Ự������ߺ������
++			connection = connectionFactory.createConnection(DEFAULT_USERNAME, DEFAULT_PASSWORD);
++			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);		
++			MessageConsumer consumer = session.createConsumer(destination);
++			l=new AsynMesListener();
++			consumer.setMessageListener(l);
++			connection.start();
++			// �ȴ�30���˳�
++			CountDownLatch latch = new CountDownLatch(1);	
++			while (msg == null) {		
++				System.out.println("��ʼ��JBOSS�˽�����Ϣ-----");
++		    	latch.await(5, TimeUnit.SECONDS);
++			 }
++		} catch (Exception e) {
++			e.printStackTrace();
++		} 
++	}
++}
++
++
++ 
++
++
+Index: ../newBean2/src/main/java/jee/jms/producer/JMSProducer.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/java/jee/jms/producer/JMSProducer.java b/../newBean2/src/main/java/jee/jms/producer/JMSProducer.java
+new file mode 100644
+--- /dev/null	(date 1681088885734)
++++ b/../newBean2/src/main/java/jee/jms/producer/JMSProducer.java	(date 1681088885734)
+@@ -0,0 +1,147 @@
++package jee.jms.producer;
++
++import java.text.SimpleDateFormat;
++import java.util.Date;
++import java.util.Scanner;
++
++import javax.jms.Connection;
++import javax.jms.ConnectionFactory;
++import javax.jms.DeliveryMode;
++import javax.jms.MessageProducer;
++import javax.jms.Session;
++import javax.jms.TextMessage;
++import javax.naming.Context;
++import javax.naming.InitialContext;
++import java.util.Properties;
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++import java.util.logging.Logger;
++
++import javax.jms.*;
++import javax.naming.*;
++
++public class JMSProducer {
++	private static final Logger log = Logger.getLogger(JMSProducer.class.getName());
++	private static final String DEFAULT_MESSAGE = "Welcome to JMS!";
++	private static final String DEFAULT_CONNECTION_FACTORY = "jms/RemoteConnectionFactory";
++    private static final String DEFAULT_DESTINATION = "jms/queue/test";
++	private static final String DEFAULT_MESSAGE_COUNT = "1";
++	private static final String DEFAULT_USERNAME = "test";
++	private static final String DEFAULT_PASSWORD = "123456";
++	private static final String INITIAL_CONTEXT_FACTORY = "org.jboss.naming.remote.client.InitialContextFactory";
++	private static final String PROVIDER_URL = "remote://localhost:4447";
++    private static final int MESSAGE_COUNT = 10;
++    private static final int DELAY_MILLISECONDS = 100;
++    private static final long MESSAGE_DELAY_MS = 100;
++    private static final long SEND_DURATION_MS = 60000;
++    
++	public static void main(String[] args) throws Exception {
++		Context context=null;
++		Connection connection=null;
++		try {
++		// 设置上下文
++		System.out.println("设置JNDI访问环境信息也就是设置应用服务器的上下文信息!");
++		final Properties env = new Properties();
++	              //初始化Context的工厂类
++		env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY);
++	             //Context服务提供者的URL
++		env.put(Context.PROVIDER_URL,  PROVIDER_URL);
++	            //应用用户的登录名,密码.
++		env.put(Context.SECURITY_PRINCIPAL, DEFAULT_USERNAME);			
++		env.put(Context.SECURITY_CREDENTIALS, DEFAULT_PASSWORD);
++		// 获取到InitialContext对象.
++		context = new InitialContext(env);
++		System.out.println ("获取连接工厂!");
++		ConnectionFactory connectionFactory =(ConnectionFactory)context.lookup(DEFAULT_CONNECTION_FACTORY);
++        System.out.println ("获取目的地!");
++        Destination destination = (Destination)context.lookup(DEFAULT_DESTINATION);
++//创建JMS连接、会话、生产者和消费者
++        connection = connectionFactory.createConnection(DEFAULT_USERNAME, DEFAULT_PASSWORD);
++        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
++        MessageProducer producer = session.createProducer(destination);
++        connection.start();
++//        int count = Integer.parseInt(DEFAULT_MESSAGE_COUNT);
++////发送特定数目的消息
++//        TextMessage message = null;
++//        for (int i = 0; i < count; i++) {
++//        	message = session.createTextMessage(DEFAULT_MESSAGE);
++//        	producer.send(message);
++//        	System.out.println ("message:"+message);
++//        	System.out.println ("message:"+DEFAULT_MESSAGE);
++//}
++//// 等待30秒退出
++//        CountDownLatch latch = new CountDownLatch(1);
++//        latch.await(30, TimeUnit.SECONDS);
++//}
++//		catch (Exception e) {
++//			log.severe(e.getMessage());
++//			throw e;
++//} finally {
++//	if (context != null) {
++//		context.close();
++//}
++//// 关闭连接负责会话,生产商和消费者
++//	if (connection != null) {
++//		connection.close();
++//}
++//}
++        int messageCount = 0;
++        while (true) {
++            Date startTime = new Date();
++            long messageCount1 = 0;
++            long sendDuration = 0;
++
++            // Send messages for SEND_DURATION_MS
++            while (sendDuration < SEND_DURATION_MS) {
++                Date sendTime = new Date();
++                for (int i = 0; i < MESSAGE_COUNT; i++) {
++                    TextMessage message = session.createTextMessage(createMessage(sendTime, messageCount1));
++                    producer.send(message);
++                    String str=createMessage(sendTime, messageCount1);
++                    System.out.println ("message:"+str);
++
++                    messageCount1++;
++                    Thread.sleep(MESSAGE_DELAY_MS);
++                }
++                sendDuration = new Date().getTime() - startTime.getTime();
++            }
++
++            // Ask user whether to send messages again
++            System.out.print("Send messages for another minute? (y/n): ");
++            Scanner scanner = new Scanner(System.in);
++            String input = scanner.nextLine();
++
++            // If user chooses not to send messages again, break out of loop
++            if (!input.equalsIgnoreCase("y")) {
++                break;
++            }
++        }
++    } catch (Exception e) {
++        e.printStackTrace();
++    } finally {
++        // 关闭连接、会话和生产者
++    	if (context != null) {
++    		context.close();
++    }
++    // 关闭连接负责会话,生产商和消费者
++    	if (connection != null) {
++    		connection.close();
++    }
++}
++}
++	private static boolean shouldSendAgain() {
++        // 实现用户选择是否再次发送的逻辑
++        return true; // 这里默认为再次发送
++    }
++	 private static String createMessage(Date sendTime, long messageCount) {
++	        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
++	        String timestamp = format.format(sendTime);
++	        return "Message #" + messageCount + " sent at " + timestamp;
++	    }
++}
++
++
++
++
++		
++
+Index: ../newBean2/src/main/webapp/WEB-INF/web.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/WEB-INF/web.xml b/../newBean2/src/main/webapp/WEB-INF/web.xml
+new file mode 100644
+--- /dev/null	(date 1678695578972)
++++ b/../newBean2/src/main/webapp/WEB-INF/web.xml	(date 1678695578972)
+@@ -0,0 +1,7 @@
++<!DOCTYPE web-app PUBLIC
++ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
++ "http://java.sun.com/dtd/web-app_2_3.dtd" >
++
++<web-app>
++  <display-name>Archetype Created Web Application</display-name>
++</web-app>
+Index: ../newBean2/src/main/webapp/error.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/error.jsp b/../newBean2/src/main/webapp/error.jsp
+new file mode 100644
+--- /dev/null	(date 1617250851872)
++++ b/../newBean2/src/main/webapp/error.jsp	(date 1617250851872)
+@@ -0,0 +1,34 @@
++<%@ page language="java" import="java.util.*" %>
++<%@ page language="java" contentType="text/html; charset=UTF-8"
++    pageEncoding="UTF-8"%>
++<%
++String path = request.getContextPath();
++String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
++%>
++
++<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
++<html>
++  <head>
++    <base href="<%=basePath%>">
++    
++    <title>错误页面</title>
++    
++	<meta http-equiv="pragma" content="no-cache">
++	<meta http-equiv="cache-control" content="no-cache">
++	<meta http-equiv="expires" content="0">    
++	<meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
++	<meta http-equiv="description" content="This is my page">
++	<!--
++	<link rel="stylesheet" type="text/css" href="styles.css">
++	-->
++
++  </head>
++  
++  <body>
++  <ul>
++  	<li>出错信息: ${errMsg}</li>
++  	<li><a href="<%=basePath%>login.jsp">返回</a></li>
++  </ul>
++   
++  </body>
++</html>
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1681643613196)
++++ b/.idea/.gitignore	(date 1681643613196)
+@@ -0,0 +1,8 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Editor-based HTTP Client requests
++/httpRequests/
++# Datasource local storage ignored files
++/dataSources/
++/dataSources.local.xml
+Index: ../newBean2/src/main/webapp/login.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/login.html b/../newBean2/src/main/webapp/login.html
+new file mode 100644
+--- /dev/null	(date 1681026502793)
++++ b/../newBean2/src/main/webapp/login.html	(date 1681026502793)
+@@ -0,0 +1,15 @@
++<!DOCTYPE html>
++<html>
++<head>
++<meta charset="UTF-8">
++<title>登录</title>
++</head>
++<body>
++	<form action="login.do" method="post">
++	<br>账号<input type="text" name="username"></br>
++	<br>密码<input type="text" name="password"></br>
++	<input type="submit" value="登录">
++	</form>
++	<a href="./register.html">注册<a>
++</body>
++</html>
+\ No newline at end of file
+Index: ../newBean2/src/main/webapp/welcome.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/welcome.jsp b/../newBean2/src/main/webapp/welcome.jsp
+new file mode 100644
+--- /dev/null	(date 1678635067408)
++++ b/../newBean2/src/main/webapp/welcome.jsp	(date 1678635067408)
+@@ -0,0 +1,21 @@
++<%@ page contentType="text/html;charset=UTF-8" language="java" %>
++<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
++<!DOCTYPE html >
++<html>
++<head>
++<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
++<title>WELCOME PAGE</title>
++</head>
++<body>
++	<h1>Welcome</h1>
++	<h1><b>${user.username}</b></h1>
++
++	<c:choose>
++	<c:when test="${user.status=='0'}">管理员</c:when>
++	<c:when test="${user.status=='1'}">普通用户</c:when>
++	<c:otherwise>身份信息错误</c:otherwise>
++	</c:choose>
++
++	<a href="./login.html">退出</a>
++</body>
++</html>	
+\ No newline at end of file
+Index: ../newBean2/.idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/workspace.xml b/../newBean2/.idea/workspace.xml
+new file mode 100644
+--- /dev/null	(date 1681643605584)
++++ b/../newBean2/.idea/workspace.xml	(date 1681643605584)
+@@ -0,0 +1,192 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ArtifactsWorkspaceSettings">
++    <artifacts-to-build>
++      <artifact name="newBean2:war" />
++    </artifacts-to-build>
++  </component>
++  <component name="AutoImportSettings">
++    <option name="autoReloadType" value="SELECTIVE" />
++  </component>
++  <component name="ChangeListManager">
++    <list default="true" id="c7ff7126-e7d1-46e7-97f8-ad638f58a9b8" name="Changes" comment="">
++      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/libraries/javax_ejb_api.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/mdb/PTPMessageBean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/singleton/remote/SimpleSingletonBeanRemote.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/singleton/remote/SimpleSingletonClient.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/singleton/remote/SimpleSingletonRemote.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateful/remote/MulBy2Bean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateful/remote/MulBy2Client.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateful/remote/MulBy2Remote.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/local/CalculatorBean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/local/CalculatorBeanLocal.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/local/CallerBean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/local/CallerBeanRemote.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/local/TestLocalClient.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/remote/HelloBean.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/remote/HelloBeanRemote.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/ejb/stateless/remote/StatelessRemoteClient.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/jms/producer/JMSProducer.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/jms/queue/AsyncMesConsumer.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/jms/queue/JMSProducer.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/java/jee/jms/queue/SyncMesConsumer.java" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/Select.jsp" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/WEB-INF/lib/mysql-connector-java-5.1.47.jar" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/WEB-INF/web.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/error.jsp" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/login.html" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/register.html" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/src/main/webapp/welcome.jsp" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/../test1/test1.iml" afterDir="false" />
++    </list>
++    <option name="SHOW_DIALOG" value="false" />
++    <option name="HIGHLIGHT_CONFLICTS" value="true" />
++    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
++    <option name="LAST_RESOLUTION" value="IGNORE" />
++  </component>
++  <component name="Git.Settings">
++    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
++  </component>
++  <component name="MarkdownSettingsMigration">
++    <option name="stateVersion" value="1" />
++  </component>
++  <component name="MavenImportPreferences">
++    <option name="importingSettings">
++      <MavenImportingSettings>
++        <option name="workspaceImportEnabled" value="true" />
++      </MavenImportingSettings>
++    </option>
++  </component>
++  <component name="ProjectId" id="2ODgNFac7TZosDEeW4Ptxilw71Q" />
++  <component name="ProjectViewState">
++    <option name="hideEmptyMiddlePackages" value="true" />
++    <option name="showLibraryContents" value="true" />
++  </component>
++  <component name="PropertiesComponent">{
++  &quot;keyToString&quot;: {
++    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
++    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
++    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
++    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
++    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
++    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
++    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
++    &quot;last_opened_file_path&quot;: &quot;D:/schoolStudy/newBean2/src/main/webapp&quot;,
++    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
++    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
++    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
++    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
++    &quot;project.structure.last.edited&quot;: &quot;Libraries&quot;,
++    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
++    &quot;project.structure.side.proportion&quot;: &quot;0.33259425&quot;,
++    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
++  }
++}</component>
++  <component name="RecentsManager">
++    <key name="CopyFile.RECENT_KEYS">
++      <recent name="D:\schoolStudy\newBean2\src\main\webapp" />
++      <recent name="D:\schoolStudy\newBean2" />
++    </key>
++    <key name="CopyClassDialog.RECENTS_KEY">
++      <recent name="jee.jms.queue" />
++    </key>
++  </component>
++  <component name="RunManager">
++    <configuration name="JBoss/WildFly 18.0.0.Final" type="JBossConfiguration" factoryName="Local" APPLICATION_SERVER_NAME="JBoss/WildFly 18.0.0.Final" ALTERNATIVE_JRE_ENABLED="false" nameIsGenerated="true">
++      <option name="UPDATING_POLICY" value="restart-server" />
++      <deployment>
++        <artifact name="newBean2:war">
++          <settings />
++        </artifact>
++      </deployment>
++      <server-settings>
++        <option name="SERVER" />
++        <option name="BINDING_SET_NAME" value="" />
++        <option name="DOMAIN" value="false" />
++        <option name="SERVER_GROUP" value="main-server-group" />
++        <option name="USERNAME" value="" />
++        <option name="CREDENTIAL_ALIAS" />
++      </server-settings>
++      <predefined_log_file enabled="true" id="JBoss" />
++      <RunnerSettings RunnerId="Debug">
++        <option name="DEBUG_PORT" value="56581" />
++      </RunnerSettings>
++      <ConfigurationWrapper VM_VAR="JAVA_OPTS" RunnerId="Cover">
++        <option name="USE_ENV_VARIABLES" value="true" />
++        <STARTUP>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </STARTUP>
++        <SHUTDOWN>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </SHUTDOWN>
++      </ConfigurationWrapper>
++      <ConfigurationWrapper VM_VAR="JAVA_OPTS" RunnerId="Debug">
++        <option name="USE_ENV_VARIABLES" value="true" />
++        <STARTUP>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </STARTUP>
++        <SHUTDOWN>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </SHUTDOWN>
++      </ConfigurationWrapper>
++      <ConfigurationWrapper VM_VAR="JAVA_OPTS" RunnerId="Run">
++        <option name="USE_ENV_VARIABLES" value="true" />
++        <STARTUP>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </STARTUP>
++        <SHUTDOWN>
++          <option name="USE_DEFAULT" value="true" />
++          <option name="SCRIPT" value="" />
++          <option name="VM_PARAMETERS" value="" />
++          <option name="PROGRAM_PARAMETERS" value="" />
++        </SHUTDOWN>
++      </ConfigurationWrapper>
++      <method v="2">
++        <option name="Make" enabled="true" />
++        <option name="BuildArtifacts" enabled="true">
++          <artifact name="newBean2:war" />
++        </option>
++      </method>
++    </configuration>
++  </component>
++  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
++  <component name="TaskManager">
++    <task active="true" id="Default" summary="Default task">
++      <changelist id="c7ff7126-e7d1-46e7-97f8-ad638f58a9b8" name="Changes" comment="" />
++      <created>1681100528777</created>
++      <option name="number" value="Default" />
++      <option name="presentableId" value="Default" />
++      <updated>1681100528777</updated>
++      <workItem from="1681100529905" duration="9335000" />
++      <workItem from="1681643554213" duration="51000" />
++    </task>
++    <servers />
++  </component>
++  <component name="TypeScriptGeneratedFilesManager">
++    <option name="version" value="3" />
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/src/main/webapp/register.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/src/main/webapp/register.html b/../newBean2/src/main/webapp/register.html
+new file mode 100644
+--- /dev/null	(date 1678341106958)
++++ b/../newBean2/src/main/webapp/register.html	(date 1678341106958)
+@@ -0,0 +1,15 @@
++<!DOCTYPE html>
++<html>
++<head>
++<meta charset="UTF-8">
++<title>注册</title>
++</head>
++<body>
++	<form action="register.do" method="post">
++	请输入账号<input type="text" name="username"></br>
++	请输入密码<input type="text" name="password"></br>
++	<input type="submit" value="注册">
++	</form>
++	<a href="./login.html">登录</a>
++</body>
++</html>
+\ No newline at end of file
+Index: ../newBean2/.idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/misc.xml b/../newBean2/.idea/misc.xml
+new file mode 100644
+--- /dev/null	(date 1681100553673)
++++ b/../newBean2/.idea/misc.xml	(date 1681100553673)
+@@ -0,0 +1,17 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ExternalStorageConfigurationManager" enabled="true" />
++  <component name="FrameworkDetectionExcludesConfiguration">
++    <file type="web" url="file://$PROJECT_DIR$" />
++  </component>
++  <component name="MavenProjectsManager">
++    <option name="originalFiles">
++      <list>
++        <option value="$PROJECT_DIR$/pom.xml" />
++      </list>
++    </option>
++  </component>
++  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
++    <output url="file://$PROJECT_DIR$/out" />
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/.idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/vcs.xml b/../newBean2/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1681100529782)
++++ b/../newBean2/.idea/vcs.xml	(date 1681100529782)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/pom.xml b/../newBean2/pom.xml
+new file mode 100644
+--- /dev/null	(date 1681091555628)
++++ b/../newBean2/pom.xml	(date 1681091555628)
+@@ -0,0 +1,49 @@
++<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
++  <modelVersion>4.0.0</modelVersion>
++  <groupId>org.example</groupId>
++  <artifactId>jsphhh</artifactId>
++  <packaging>war</packaging>
++  <version>1.0-SNAPSHOT</version>
++  <name>jsphhh Maven Webapp</name>
++  <url>http://maven.apache.org</url>
++  <dependencies>
++    <dependency>
++      <groupId>junit</groupId>
++      <artifactId>junit</artifactId>
++      <version>3.8.1</version>
++      <scope>test</scope>
++    </dependency>
++    <dependency>
++      <groupId>mysql</groupId>
++      <artifactId>mysql-connector-java</artifactId>
++      <version>5.1.47</version>
++    </dependency>
++    <dependency>
++      <groupId>org.apache.activemq</groupId>
++      <artifactId>activemq-client</artifactId>
++      <version>5.14.5</version>
++    </dependency>
++    <!-- https://mvnrepository.com/artifact/javax.ejb/ejb-api -->
++    <dependency>
++      <groupId>javax.ejb</groupId>
++      <artifactId>ejb-api</artifactId>
++      <version>3.0</version>
++      <scope>provided</scope>
++    </dependency>
++<!--     https://mvnrepository.com/artifact/javax.ejb/ejb-api -->
++<!--    <dependency>-->
++<!--      <groupId>javax.ejb</groupId>-->
++<!--      <artifactId>ejb-api</artifactId>-->
++<!--      <version>3.0-alpha-1</version>-->
++<!--      <scope>provided</scope>-->
++<!--    </dependency>-->
++
++
++
++  </dependencies>
++
++  <build>
++    <finalName>jsphhh</finalName>
++  </build>
++</project>
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1681643609843)
++++ b/.idea/vcs.xml	(date 1681643609843)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+new file mode 100644
+--- /dev/null	(date 1681643622132)
++++ b/.idea/misc.xml	(date 1681643622132)
+@@ -0,0 +1,17 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ExternalStorageConfigurationManager" enabled="true" />
++  <component name="FrameworkDetectionExcludesConfiguration">
++    <file type="web" url="file://$PROJECT_DIR$" />
++  </component>
++  <component name="MavenProjectsManager">
++    <option name="originalFiles">
++      <list>
++        <option value="$PROJECT_DIR$/pom.xml" />
++      </list>
++    </option>
++  </component>
++  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
++    <output url="file://$PROJECT_DIR$/out" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/jarRepositories.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/jarRepositories.xml b/.idea/jarRepositories.xml
+new file mode 100644
+--- /dev/null	(date 1681643622191)
++++ b/.idea/jarRepositories.xml	(date 1681643622191)
+@@ -0,0 +1,20 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="RemoteRepositoriesConfiguration">
++    <remote-repository>
++      <option name="id" value="central" />
++      <option name="name" value="Central Repository" />
++      <option name="url" value="http://maven.aliyun.com/nexus/content/groups/public/" />
++    </remote-repository>
++    <remote-repository>
++      <option name="id" value="central" />
++      <option name="name" value="Maven Central repository" />
++      <option name="url" value="https://repo1.maven.org/maven2" />
++    </remote-repository>
++    <remote-repository>
++      <option name="id" value="jboss.community" />
++      <option name="name" value="JBoss Community repository" />
++      <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
++    </remote-repository>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/encodings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/encodings.xml b/.idea/encodings.xml
+new file mode 100644
+--- /dev/null	(date 1681643622169)
++++ b/.idea/encodings.xml	(date 1681643622169)
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="Encoding">
++    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
++    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/compiler.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/compiler.xml b/.idea/compiler.xml
+new file mode 100644
+--- /dev/null	(date 1681644862754)
++++ b/.idea/compiler.xml	(date 1681644862754)
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="CompilerConfiguration">
++    <annotationProcessing>
++      <profile default="true" name="Default" enabled="true" />
++      <profile name="Maven default annotation processors profile" enabled="true">
++        <sourceOutputDir name="target/generated-sources/annotations" />
++        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
++        <outputRelativeToContentRoot value="true" />
++        <module name="reggie_take_out" />
++      </profile>
++    </annotationProcessing>
++    <bytecodeTargetLevel>
++      <module name="ruijitakeout" target="1.5" />
++    </bytecodeTargetLevel>
++  </component>
++  <component name="JavacSettings">
++    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
++      <module name="reggie_take_out" options="-parameters" />
++    </option>
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/.idea/compiler.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/compiler.xml b/../newBean2/.idea/compiler.xml
+new file mode 100644
+--- /dev/null	(date 1681347236239)
++++ b/../newBean2/.idea/compiler.xml	(date 1681347236239)
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="CompilerConfiguration">
++    <annotationProcessing>
++      <profile name="Maven default annotation processors profile" enabled="true">
++        <sourceOutputDir name="target/generated-sources/annotations" />
++        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
++        <outputRelativeToContentRoot value="true" />
++        <module name="jsphhh" />
++      </profile>
++    </annotationProcessing>
++    <bytecodeTargetLevel>
++      <module name="newBean2" target="1.5" />
++    </bytecodeTargetLevel>
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/.idea/encodings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/encodings.xml b/../newBean2/.idea/encodings.xml
+new file mode 100644
+--- /dev/null	(date 1681100553699)
++++ b/../newBean2/.idea/encodings.xml	(date 1681100553699)
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="Encoding">
++    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
++    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
++  </component>
++</project>
+\ No newline at end of file
+Index: ../newBean2/.idea/jarRepositories.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../newBean2/.idea/jarRepositories.xml b/../newBean2/.idea/jarRepositories.xml
+new file mode 100644
+--- /dev/null	(date 1681100553714)
++++ b/../newBean2/.idea/jarRepositories.xml	(date 1681100553714)
+@@ -0,0 +1,20 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="RemoteRepositoriesConfiguration">
++    <remote-repository>
++      <option name="id" value="central" />
++      <option name="name" value="Central Repository" />
++      <option name="url" value="http://maven.aliyun.com/nexus/content/groups/public/" />
++    </remote-repository>
++    <remote-repository>
++      <option name="id" value="central" />
++      <option name="name" value="Maven Central repository" />
++      <option name="url" value="https://repo1.maven.org/maven2" />
++    </remote-repository>
++    <remote-repository>
++      <option name="id" value="jboss.community" />
++      <option name="name" value="JBoss Community repository" />
++      <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
++    </remote-repository>
++  </component>
++</project>
+\ No newline at end of file
